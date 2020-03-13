@@ -1,0 +1,143 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Mar  6 11:13:31 2020
+"""
+
+from operator import itemgetter
+from math import sqrt
+import numpy as np
+
+
+class Node():
+    """构建kdtree的节点类"""
+    def __init__(self, data=-1):
+        """初始化"""
+        """data为节点数值"""
+        """left为左子树节点"""
+        """right为右子树节点"""
+        """cut_d为切割维度"""
+        self.data = data
+        self.left = None
+        self.right = None
+        self.cut_d = None
+
+
+def kd_tree(points, i=0):
+    """建立kdtree"""
+    """points为样本点集合，i为用来确定切割维度的参数"""
+    
+    if 0 == len(points):        
+        return None
+    
+    cutting_dim = i % len(points[0])   # 指定切分维度，len(points[0])是数据的维度数量，这样计算可以保证循环
+       
+    medium_index = len(points)//2   # 切分点
+    points = sorted(points,key=itemgetter(cutting_dim))   # 对所有的实例点按照指定维度进行排序，itemgetter用于获取对象的某维度数据，参数为维度需要获取的数据在对象中的序号
+    
+    node = Node(points[medium_index])   # 将该维度的中值点作为根节点
+    node.cut_d = cutting_dim   # 记录分割维度
+    node.left = kd_tree(points[:medium_index], i+1)   # 递归构建左子树
+    node.right = kd_tree(points[medium_index + 1:], i+1)   # 递归构建右子树
+        
+    return node
+
+
+def distance(point1, point2):
+    """计算两点间的距离"""
+    assert len(point1) == len(point2), "两点的数据维度应一致"
+    return sqrt(np.sum((np.array(point1) - np.array(point2))**2))
+
+
+def kNN_by_KDTree(tree, query, k = 3):
+    """tree为kd tree"""
+    """query为寻找近邻的目标点"""
+    """k为近邻的数量"""
+    
+    temp_point = root   # 正在遍历点，初始化为根节点
+    nearest_dist = distance(root.data, query)   # 记录最近邻距离，初始化为与根节点的距离
+    NN = [(temp_point, nearest_dist)]
+
+    nodesList = []   # 记录所有遍历点
+
+    while temp_point:   # 若有正在遍历的点
+        
+        nodesList.append(temp_point)   # 记录正在遍历点，及与目标点的距离
+        temp_dist = distance(temp_point.data, query)   # 正在遍历点与目标点的距离
+        
+        if temp_dist < nearest_dist:   # 若目标点与正在遍历点的距离小于之前遍历点的最近距离
+            NN.append((temp_point, temp_dist))   # 将当前点存入近邻列
+            NN = sorted(NN, key=lambda x:x[1])
+            if len(NN) > k:
+                NN = NN[:k]
+                nearest_dist = NN[-1][1]
+                
+        dim = temp_point.cut_d   # 按ked tree构建规则分配目标点，将将分配到的下一个分割点作为新的遍历点
+        if query[dim] <= temp_point.data[dim]:   
+            temp_point = temp_point.left   
+        else:
+            temp_point= temp_point.right
+    
+    """回溯nodesList，比较目标点与切割超平面的距离，检查是否需要检查另一侧的子树空间"""
+    while nodesList:   # 还有未回溯的遍历点
+        cut_point = nodesList.pop()   # 先回溯上一次的遍历点
+        
+        dim = cut_point.cut_d   # 计算目标点在遍历上一个点时与分割超平面的距离
+        s_dist = abs(query[dim] - cut_point.data[dim])
+        #print("比较点：{}；超平面距离：{}；最近距离：{}".format(cut_point.data, s_dist, nearest_dist))
+        
+        if s_dist < nearest_dist:   # 如果到超平面的距离小于与此遍历点的距离，则检查另一则子树
+            #print("超平面距离小于最近距离，查找另一侧子树")
+            
+            if query[dim] <= cut_point.data[dim]:   # 前往另一侧子树
+                temp_point = cut_point.right   
+            else:
+                temp_point= cut_point.left
+            
+            while temp_point:   # 如果另一侧子树存在，按kd tree构建规则遍历子树，并将遍历点存储进nodesList
+                
+                nodesList.append(temp_point)   # 记录正在遍历点
+                temp_dist = distance(temp_point.data, query)
+                
+                if temp_dist < nearest_dist:   # 若目标点与正在遍历点的距离小于之前遍历点的最近距离
+                    NN.append((temp_point, temp_dist))   # 将当前点存入近邻列
+                    NN = sorted(NN, key=lambda x:x[1])
+                    if len(NN) > k:
+                        NN = NN[:k]
+                        nearest_dist = NN[-1][1]
+        
+                dim = temp_point.cut_d   # 正在遍历点的分割维度
+                if query[dim] <= temp_point.data[dim]:
+                    temp_point = temp_point.left   # 遍历到左子树
+                else:
+                    temp_point= temp_point.right
+        #else:
+            #print("超平面距离大于最近距离，向上查找")
+    
+    return np.array([n[1] for n in NN]), np.array([np.argwhere(points == n[0].data)[0][0] for n in NN])
+    #return NN
+
+
+if __name__ == "__main__":
+    
+    """实例检验"""
+    np.random.seed(66)
+    points = np.random.random((100, 3))   # 建立长度为50、维度为3的数据集
+    root = kd_tree(points)   # 基于数据集构建kd tree
+    
+    query = (0.3,0.5,0.2)   # 目标点
+    neighbors, index = kNN_by_KDTree(root, query, k = 3)
+    
+
+    """用sklearn的kDTree模块检验下结果"""
+    import numpy as np
+    from sklearn.neighbors import KDTree
+    
+    tree = KDTree(points)
+    dists, indices = tree.query([query], k=3)
+    print(dists, indices)
+        
+    
+  
+    
+    
+
