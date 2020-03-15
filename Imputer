@@ -1,0 +1,26 @@
+import pandas as pd
+
+class Imputer():
+    
+    def __init__(self, strategy = 'mean', fill_value = None):
+        """初始化"""
+        self.data = None
+        self.strategy_ = strategy
+        self.fill_value_ = fill_value
+        
+    def fit_transform(self, data):
+        """训练数据"""
+        assert data.shape[1] == 1, "输入数据集须为一维"
+        data = pd.DataFrame(data)
+        if self.strategy_ == 'mean':
+            data = data.fillna(data.mean())
+        if self.strategy_ == 'median':
+            data = data.fillna(data.median())
+        if self.strategy_ == 'constant':
+            if self.fill_value_ is None:
+                return "指定fill_value的值"
+            data = data.fillna(self.fill_value_)
+        if self.strategy_ == 'most_frequent':
+            data = data.fillna(data.mode().iloc[0][0])
+        
+        return data
