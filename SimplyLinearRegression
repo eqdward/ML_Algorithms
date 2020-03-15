@@ -1,0 +1,41 @@
+import numpy as np
+
+class SimpleLinearRegression():
+    
+    def __init__(self):
+        """初始化模型参数"""
+        self.a_ = None
+        self.b_ = None
+    
+    def fit(self, x_train, y_train):
+        """根据训练集训练模型，即求参数a和b"""
+        assert x_train.ndim == 1, "简单线性回归要求特征变量为一维"
+        assert len(x_train) == len(y_train), "特征向量的长度和标签向量长度应一致"
+        
+        x_mean = np.mean(x_train)
+        y_mean = np.mean(y_train)
+        
+        num = (x_train - x_mean).dot(y_train - y_mean)   # a的分子
+        d = (x_train - x_mean).dot(x_train - x_mean)   # a分母
+        
+        self.a_ = num / d
+        self.b_ = y_mean - self.a_ * x_mean
+        
+        return self
+    
+    def predict(self, x_test):
+        """给定测试集x_test, 返回预测结果的标签向量"""
+        assert x_test.ndim == 1, "简单线性回归要求特征变量为一维"
+        assert self.a_ is not None and self.b_ is not None, "必须先fit模型"
+        
+        return np.array([self._predict(x) for x in x_test])
+    
+    def _predict(self, x_single):
+        """给定单个待预测数据x_single，返回x_single的预测标签值"""
+        return self.a_ * x_single + self.b_
+    
+    
+    def __repr__(self):
+        """返回一个可以用来表示对象的可打印字符串"""
+        return "SimpleLinearRegression()"
+
