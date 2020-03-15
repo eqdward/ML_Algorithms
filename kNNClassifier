@@ -1,0 +1,43 @@
+"""kNN分类算法"""
+
+import numpy as np
+from math import sqrt
+from collections import Counter
+
+class kNNClassifier():
+    
+    def __init__(self, k=3):
+        """初始化分类器"""
+        self.k = k
+        self._X_train = None
+        self._y_train = None
+    
+    def fit(self, X_train, y_train):
+        """使用X_trian, y_train训练模型"""
+        assert X_train.shape[0] == y_train.shape[0], "X_train和y_train数据集大小应一致"
+        assert self.k <= X_train.shape[0]-1, "近邻k的数量不能超过训练集的大小"
+        
+        self._X_train = X_train
+        self._y_train = y_train
+        
+        return self
+    
+    def predict(self, X_test):
+        """使用模型预测验证集数据X_test的标签值"""
+        assert self._X_train is not None and self._y_train is not None, "须先训练模型"
+        assert X_test.shape[1] == self._X_train.shape[1], "验证集须与训练集的维度一致"
+        
+        y_predict = []   # 存储预测的标签的空数组
+        for x_test in X_test:
+            distances = [sqrt(np.sum((x_train - x_test) ** 2)) for x_train in self._X_train]   #计算x_test与测试集中每个样本的距离
+            nearest = np.argsort(distances)   # 按距离升序，返回distance中的索引
+            
+            topK_y = [self._y_train[i] for i in nearest[:self.k]]   # 返回距x_test最近的k个近邻的标签
+            votes = Counter(topK_y)   # 近邻的标签“投票”
+            
+            y_predict.append(votes.most_common(1)[0][0])   # 存储x_test的预测标签结果
+        
+        return np.array(y_predict)  # 以array类型返回验证集的预测结果集合
+    
+    def __repr__(self):
+        return "kNN(k=%d)" % self.k
