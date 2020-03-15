@@ -1,0 +1,92 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""构建、遍历两叉树"""
+
+from collections import deque  #使用队列模型，FIFO性质
+
+class Node():  #节点类，含三个属性：当前节点值，左节点信息，右节点信息
+    def __init__(self, data=-1, lchild=None, rchild=None):  
+        self.data = data  #节点数据
+        self.lchild = lchild  #左节点
+        self.rchild = rchild  #右节点
+
+
+class Build_BTree():
+    def __init__(self):
+        """初始化"""
+        self.root = Node()  #初始化根节点（data=-1, lchild=None, rchild=None）
+        self.queue = deque()  #初始化队列（为空），该队列用于记录尚未分配枝叶的节点
+    
+    def build(self, i):
+        """按层次生成树（广度优先）"""
+        node = Node(i)  #建立节点node，data=i 
+        if self.root.data == -1:  #判断：当root节点值为-1时为真，说明树根尚未建立，于是将node作为root节点
+            self.root = node
+            self.queue.append(self.root)  #将root节点加入队列queue，待后续分配叶节点
+        else:  #判断：当root节点值不为-1时为真，说明树根已建立，于是开始建立枝叶
+            treeNode = self.queue[0]  #取队列的第一个元素，即需要分配枝叶的首个节点
+            if treeNode.lchild is None:  #若该元素左叶节点不存在，将node作为左叶节点，同时将该节点加入queue，待后续分配叶节点
+                treeNode.lchild = node
+                self.queue.append(treeNode.lchild)
+            else:  #若元素左叶节点已存在，将node作为右叶节点，同时将该节点加入queue，待后续分配叶节点
+                treeNode.rchild = node
+                self.queue.append(treeNode.rchild)
+                self.queue.popleft()  #该元素已分配左右叶节点，将其从队列中剔除
+    
+    def Preorder(self, root):
+        """前序遍历树"""
+        if root is None:
+            return None
+        else:
+            print(root.data, end=' ')
+            self.Preorder(root.lchild)
+            self.Preorder(root.rchild)
+    
+    
+    def Postorder(self, root):
+        """后序遍历树"""
+        if root is None:
+            return None
+        else:
+            self.Postorder(root.lchild)
+            self.Postorder(root.rchild)
+            print(root.data, end=' ')
+
+
+    def Inorder(self, root):
+        """中序遍历树"""
+        if root is None:
+            return None
+        else:
+            self.Inorder(root.lchild)
+            print(root.data, end=' ')
+            self.Inorder(root.rchild)
+
+
+
+    def Leveldown(self, root):
+        """逐层遍历树"""
+        if root is None or root.data == -1:
+            return None
+        else:
+            queue = deque()
+            queue.append(root)
+            while queue:
+                node = queue.popleft()
+                print(node.data, end=' ')
+                if node.lchild is not None:
+                    queue.append(node.lchild)
+                if node.rchild is not None:
+                    queue.append(node.rchild)
+                                        
+
+if __name__ == "__main__":
+    elems = range(0,10)  # 0,1,2,3,4,5,6,7,8,9
+    tree = Build_BTree()
+    for i in elems:
+        tree.build(i)
+    tree.Preorder(tree.root)
+    tree.Inorder(tree.root)
+    tree.Leveldown(tree.root)
+    tree.Postorder(tree.root)
