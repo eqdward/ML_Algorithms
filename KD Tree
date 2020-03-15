@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Mar  6 11:13:31 2020
+建立kd tree，kNN中使用kd tree搜索近邻
 """
 
 from operator import itemgetter
