@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+
+import numpy as np
+
+class LinearRegression():
+    
+    def __init__(self):
+        """初始化LinearRegression"""
+        self.coef_ = None   # 回归系数
+        self.interception_ = None   # 截距项，即常数项
+        self._beta = None   # 所有系数项的合集
+    
+    def fit_normal(self, X_train, y_train):
+        """根据训练集，拟合回归方程（即计算各系数项）"""
+        assert X_train.shape[0] == y_train.shape[0], "训练集的自变量数量应和因变量数量一致"
+        
+        X = np.hstack([np.ones((len(X_train), 1)), X_train])
+        
+        self._beta = np.linalg.inv(X.T.dot(X)).dot(X.T).dot(y_train)   # beta = (X^T·X)^-1·X^T·Y"""
+
+        self.coef_ = self._beta[1:]
+        self.interception_ = self._beta[0]
+        
+        return self
+
+    def predict(self, X_test):
+        """给定验证集X_test, 返回其预测结果组成的向量"""
+        assert self.interception_ is not None and self.coef_ is not None, "必须先fit"
+        assert X_test.shape[1] == len(self.coef_), "验证集的自变量数量与训练集的自变量数量应一致"
+        
+        X = np.hstack([np.ones((len(X_test), 1)), X_test])
+        y_predict = X.dot(self._beta)
+        
+        return y_predict
+
+    
+    def __repr__(self):
+        return "LinearRegression"
+    
+    
