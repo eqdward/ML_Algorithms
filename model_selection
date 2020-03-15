@@ -1,0 +1,23 @@
+import numpy as np
+
+def train_test_split(X, y, test_ratio = 0.2, random_seed = None):
+    """将矩阵X和标签y按照test_ration分割成X_train, X_test, y_train, y_test"""
+    assert X.shape[0] == y.shape[0], "X和y数据大小应当一致"
+    assert 0.0 <= test_ratio <= 1.0, "分割比例在（0，1）之间才有效"
+    
+    if random_seed:
+        np.random.seed(random_seed)
+    
+    shuffle_index = np.random.permutation(len(X))   # 生成从0开始的随机数列，数量值与X的索引范围一致，数量长度与X大小一致
+    
+    test_size = int(len(X) * test_ratio)   # 由分割比例计算分割量
+    
+    train_index = shuffle_index[:test_size]   # 测试集的索引
+    test_index = shuffle_index[test_size:]   # 验证集的索引
+    
+    X_train = X[train_index]
+    X_test = X[test_index]
+    y_train = y[train_index]
+    y_test = y[test_index]
+    
+    return X_train, X_test, y_train, y_test
