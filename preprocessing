@@ -1,0 +1,211 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+
+import numpy as np
+
+class MinMaxScaler():
+    """最小最大值归一化"""
+
+    def __init__(self, feature_range=[0,1]):
+        """初始化"""
+        self.max_ = None
+        self.min_ = None
+        self.feature_range = feature_range
+    
+    def fit(self, data):
+        """训练数据"""
+        self.max_ = data.max(axis=0)
+        self.min_ = data.min(axis=0)
+    
+    def transform(self, data):
+        """最小最大值转换"""
+        range_min = self.feature_range[0]
+        range_max = self.feature_range[1]
+        if range_min == 0 and range_max ==1:        
+            return (data - self.min_) / (self.max_ - self.min_)
+        else: 
+            return (data - self.min_) / (self.max_ - self.min_) * (range_max - range_min) + range_min 
+        
+    def fit_transform(self, data):
+        """训练+转换"""
+        self.fit(data)
+        return self.transform(data)
+    
+    def inverse_transform(self, data):
+        """逆最大最小归一化"""
+        range_min = self.feature_range[0]
+        range_max = self.feature_range[1]
+        if range_min == 0 and range_max ==1:
+            return data * (self.max_ - self.min_) + self.min_
+        else:
+            return (data - range_min) / (range_max - range_min) * (self.max_ - self.min_) + self.min_
+
+class StandardScaler():
+    """标准化"""
+    
+    def __init__(self):
+        """初始化"""
+        self.mean_ = None
+        self.std_ = None
+    
+    def fit(self, data):
+        """训练数据"""
+        self.mean_ = data.mean(axis=0)
+        self.std_ = data.std(axis=0)
+    
+    def transform(self, data):
+        """标准化转换"""
+        return (data - self.mean_) / self.std_
+    
+    def fit_transform(self, data):
+        """训练+转换"""
+        self.fit(data)
+        return self.transform(data)
+    
+    def inverse_transform(self, data):
+        """逆转换"""
+        return data * self.std_ + self.mean_
+
+import pandas as pd
+class LabelEncoder():
+    """标签转码"""
+    
+    def __init__(self):
+        """初始化"""
+        self.classes_ = None
+        self.categories_ = None
+        
+    def fit(self, data):
+        """训练数据，获取取值"""
+        assert sum(data.isna()) == 0, "请先处理nan"
+        
+        self.classes_ = sorted(list(data.value_counts().index))
+        self.categories_ = range(0,len(self.classes_))
+    
+    def transform(self, data):
+        """标签编码"""
+        assert pd.DataFrame(data).shape[1] == 1, "标签数据应为一维"
+        
+        data = data.replace(self.classes_, self.categories_)
+        return data
+    
+    def fit_transform(self, data):
+        """训练+编码"""
+        self.fit(data)
+        return self.transform(data)
+    
+    def inverse_transform(self, data):
+        """逆编码"""
+        data = data.replace(self.categories_, self.classes_)
+        return data
+
+class OrdinalEncoder():
+    """标签转码"""
+    
+    def __init__(self):
+        """初始化"""
+        self.classes_ = None
+        self.categories_ = None
+        
+    def fit(self, data):
+        """训练数据，获取取值"""
+        assert sum(data_.isna().any()) == 0, "请先处理nan"
+        
+        self.classes_ = []
+        self.categories_ = []
+        for d in data:
+            classes = sorted(list(data[d].value_counts().index))
+            self.classes_.append(classes)
+        for c in self.classes_:
+            categories = list(range(0,len(c)))
+            self.categories_ .append(categories)
+    
+    def transform(self, data):
+        """标签编码"""
+        i = 0
+        for d in data:
+            data[d] = data[d].replace(self.classes_[i], self.categories_[i])
+            i += 1
+        return data
+            
+    def fit_transform(self, data):
+        """训练+编码"""
+        self.fit(data)
+        return self.transform(data)
+    
+    def inverse_transform(self, data):
+        """逆编码"""
+        i = 0
+        for d in data:
+            data[d] = data[d].replace(self.categories_[i], self.classes_[i])
+            i += 1
+        return data
+
+class OneHotEncoder():
+    """独热编码"""
+    
+    def __init__(self, categories='auto'):
+        """初始化"""
+        self.categories_ = categories
+        self.feature_names_ = None
+        
+    def fit_transform(self, data):
+        """训练数据"""
+        assert sum(data.isna().any()) == 0, "请先处理nan"
+        feature_names = []
+        
+        data_ = data.copy()
+        columns = list(data.columns)   # 进行编码的列名
+        for col in columns:   # 循环对每一列进行独热编码            
+            values = pd.DataFrame(data[col].unique()).sort_values(by = 0)   # 整理原值
+            encodes = np.fliplr(np.identity(len(values), dtype='int'))   # 通过建立反对角单位矩阵进行独热编码，np.identity(n）建立n维单位矩阵，np.fliplr(）矩阵反对化
+            data_code = pd.concat([values, pd.DataFrame(encodes)], axis=1)
+            
+            new_columns = [col]   # 建立新的列名
+            for col_name in sorted(list(data[col].unique())):
+                new_columns.append(col_name) 
+            
+            feature_names.append(new_columns[1:])   
+            
+            data_code.columns = new_columns
+            data_ = pd.merge(data_, data_code, how='left', on = col)   # 编码匹配
+        
+        self.feature_names_ = feature_names
+        return data_
+    
+
+if __name__ == "__main__":
+
+    
+"""
+    #sklearn 标准化
+    from sklearn.preprocessing import StandardScaler
+    data = np.array([[-1, 2], [-0.5, 6], [0, 10], [1, 18]])
+    
+    scaler = StandardScaler()
+    scaler.fit(data)
+    scaler.mean_
+    scaler.scale_
+    
+    result = scaler.transform(data)
+    result.mean()
+    result.std()
+    
+    result_ = scaler.fit_transform(data)
+    data_ = scaler.inverse_transform(result)
+"""
+
+"""
+    #sklearn 归一化
+    from sklearn.preprocessing import MinMaxScaler
+    data = np.array([[-1, 2], [-0.5, 6], [0, 10], [1, 18]])
+    
+    scaler = MinMaxScaler()
+    scaler = scaler.fit(data)
+    result = scaler.transform(data)
+    data_ = scaler.inverse_transform(result)
+    
+    scaler = MinMaxScaler(feature_range=[5,10])         
+    result_ = scaler.fit_transform(data)
+"""
