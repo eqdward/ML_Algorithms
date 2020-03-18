@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
 import numpy as np
+import pandas as pd
+
 
 class MinMaxScaler():
     """最小最大值归一化"""
@@ -86,7 +87,20 @@ class StandardScaler():
         """逆转换"""
         return data * self.std_ + self.mean_
 
-import pandas as pd
+class Binarizer():
+    """二值化"""
+    def __init__(self, threshold):
+        """初始化"""
+        self.threshold_ = threshold
+    
+    def fit_transform(self, data):
+        """训练+转换"""
+        assert data.values.reshape(-1,1).shape[1] == 1, "输入数据集需为一维"
+        data[data < self.threshold_] = 0
+        data[data >= self.threshold_] = 1
+        
+        return data
+    
 class LabelEncoder():
     """标签转码"""
     
