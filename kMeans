@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
-"""单次kMeans"""
+"""kMeans聚类"""
 
 import numpy as np
 import pandas as pd
@@ -25,7 +24,8 @@ def get_randCenters(data, k):
 
 
 def kMeans(data, k):
-    """kMeans聚类"""
+    """单次kMeans聚类"""
+    """k为类别数"""
     
     m = data.shape[0]   # 数据集的个例数量
     results = np.random.rand(m, 2)   # 记录聚类结果的矩阵
@@ -57,6 +57,34 @@ def kMeans(data, k):
     
     
     return initial_centers, clustered_data, np.array(cluster_centers)   # 返回初始簇心，聚类后结果，聚类后簇心
+
+
+def Multi_kMeans(data, iteration, k):
+    """多次kMeans聚类"""
+    """iteration为迭代次数"""
+    """k为类别数"""
+
+    itr = 0   # 迭代计数器
+    min_dist = np.inf   # 类别内距离和，初始化为inf
+    min_initial_cents = np.zeros((k, data.shape[1]))   # 记录初始分类簇心
+    min_cluster_cents = np.zeros((k, data.shape[1]))   # 记录聚类结果
+    min_clustered_data = np.zeros((k, data.shape[1]+2))   # 记录聚类后的簇心
+    history_dist = []
+    
+    while  itr < iteration:   # 在迭代次数内循环进行kMeans聚类
+        itr += 1
+        
+        initial_centers, clustered_data, cluster_centers = kMeans(data_, k)   # 一次聚类后的结果
+        dist = clustered_data.sum(axis=0)[-1:]   # 一次聚类后的类别内距离和
+        history_dist.append(dist)
+        
+        if dist < min_dist:   # 一次聚类的距离结果小于之前的最近距离，更新最近距离、此次聚类的簇心和聚类结果
+            min_dist = dist
+            min_initial_cents = initial_centers
+            min_cluster_cents = cluster_centers
+            min_clustered_data = clustered_data
+    
+    return min_initial_cents, min_clustered_data, min_cluster_cents, history_dist
 
 
 if __name__ == "__main__":
@@ -97,4 +125,21 @@ if __name__ == "__main__":
     plt.scatter(cluster_centers[2,0], cluster_centers[2,1],color='blue', marker='+', s = 100)
     plt.scatter(cluster_centers[3,0], cluster_centers[3,1],color='yellow', marker='+', s = 100)
 
+    plt.show()
+    
+    
+    """多次kMeans"""    
+    min_initial_cents, min_clustered_data, min_cluster_cents, history_dist = Multi_kMeans(data, iteration=150, k=4)
+
+    #多次kMeans后绘图
+    data0 = min_clustered_data[min_clustered_data[:,2]==0]
+    data1 = min_clustered_data[min_clustered_data[:,2]==1]
+    data2 = min_clustered_data[min_clustered_data[:,2]==2]
+    data3 = min_clustered_data[min_clustered_data[:,2]==3]
+    
+    plt.scatter(data0[:,0],data0[:,1],color='red')
+    plt.scatter(data1[:,0],data1[:,1],color='green')
+    plt.scatter(data2[:,0],data2[:,1],color='blue')
+    plt.scatter(data3[:,0],data3[:,1],color='yellow')
+    
     plt.show()
