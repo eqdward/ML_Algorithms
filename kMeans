@@ -1,0 +1,100 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+
+"""单次kMeans"""
+
+import numpy as np
+import pandas as pd
+
+def get_dist(pt1, pt2):
+    """计算两个点的欧式距离"""
+    
+    assert pt1.shape == pt2.shape, "两个点的维度特征应一致"
+    return np.sqrt(np.sum((pt1 - pt2)**2))
+
+def get_randCenters(data, k):
+    """随机生成k个簇心"""
+    
+    n = data.shape[1]   # 簇心的维度与输入数据的维度一致
+    min_data = np.array(data.min(axis = 0)).reshape(1,n)   # 数据各维度的最小值
+    max_data = np.array(data.max(axis = 0)).reshape(1,n)   # 数据各维度的最大值
+    centers = min_data + (max_data - min_data) * np.random.rand(k, n)   # 生成簇心，介于维度的界值内
+    
+    return centers
+
+
+def kMeans(data, k):
+    """kMeans聚类"""
+    
+    m = data.shape[0]   # 数据集的个例数量
+    results = np.random.rand(m, 2)   # 记录聚类结果的矩阵
+                                     # 注：常见其他参考资料这里生成0矩阵，但是会在后面判断的时候与簇心的第0索引相等，从而跳过赋值操作
+    initial_centers = get_randCenters(data, k)   # 随机生成簇心
+    
+    flag = True
+    while flag:   # 当flag为真时重复循环
+        flag = False
+        
+        for i in range(m):   # 依次对每个数据个例分类
+            nearest_dist = np.inf   # 记录数据个例距离最近簇心的距离
+            nearest_center = -1   # # 记录个例所属簇心的索引
+            
+            for j in range(k):   # 依次比较数据个例距离每个簇心的距离，找到最近的簇心，作为个例所属的类别
+                dist = get_dist(data[i,:], initial_centers[j,:])
+                if dist < nearest_dist:
+                    nearest_dist = dist
+                    nearest_center = j
+                    
+            if results[i,0] != nearest_center:   # 结果矩阵随机数生成的作用，避免初始值为0直接与0索引相等
+                flag = True
+                results[i,:] = nearest_center, nearest_dist
+
+    clustered_data = np.hstack((data, results))   # 结果矩阵与原数据集横向拼接
+    
+    df = pd.DataFrame(clustered_data)   # 转成dataframe，可直接分组计算各类别的簇心
+    cluster_centers = df.groupby(2).mean().iloc[:,:2]
+    
+    
+    return initial_centers, clustered_data, np.array(cluster_centers)   # 返回初始簇心，聚类后结果，聚类后簇心
+
+
+if __name__ == "__main__":
+    
+
+    import matplotlib.pyplot as plt
+
+    data = pd.read_csv(r'Desktop/ML_Algorithms/machinelearninginaction-master/Ch10/testSet.csv', header=None)
+    plt.scatter(data.iloc[:,0], data.iloc[:,1])
+    plt.show()
+    
+    data_ = data.values
+    k = 4
+    
+    initial_centers, clustered_data, cluster_centers = kMeans(data_, k)
+    
+    # 按类别分组数据
+    data0 = clustered_data[clustered_data[:,2]==0]
+    data1 = clustered_data[clustered_data[:,2]==1]
+    data2 = clustered_data[clustered_data[:,2]==2]
+    data3 = clustered_data[clustered_data[:,2]==3]
+    
+    # 分颜色绘制各组数据
+    plt.scatter(data0[:,0],data0[:,1],color='red')
+    plt.scatter(data1[:,0],data1[:,1],color='green')
+    plt.scatter(data2[:,0],data2[:,1],color='blue')
+    plt.scatter(data3[:,0],data3[:,1],color='yellow')
+    
+    # 标记初始簇心
+    plt.scatter(initial_centers[0,0], initial_centers[0,1],color='red', marker='x', s = 100)
+    plt.scatter(initial_centers[1,0], initial_centers[1,1],color='green', marker='x', s = 100)
+    plt.scatter(initial_centers[2,0], initial_centers[2,1],color='blue', marker='x', s = 100)
+    plt.scatter(initial_centers[3,0], initial_centers[3,1],color='yellow', marker='x', s = 100)    
+    
+    # 标记聚类后簇心
+    plt.scatter(cluster_centers[0,0], cluster_centers[0,1],color='red', marker='+', s = 100)
+    plt.scatter(cluster_centers[1,0], cluster_centers[1,1],color='green', marker='+', s = 100)
+    plt.scatter(cluster_centers[2,0], cluster_centers[2,1],color='blue', marker='+', s = 100)
+    plt.scatter(cluster_centers[3,0], cluster_centers[3,1],color='yellow', marker='+', s = 100)
+
+    plt.show()
