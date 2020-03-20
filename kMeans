@@ -6,12 +6,15 @@
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+
 
 def get_dist(pt1, pt2):
     """计算两个点的欧式距离"""
     
     assert pt1.shape == pt2.shape, "两个点的维度特征应一致"
     return np.sqrt(np.sum((pt1 - pt2)**2))
+
 
 def get_randCenters(data, k):
     """随机生成k个簇心"""
@@ -95,14 +98,13 @@ def plot_kMeans(clustered_data, cluster_centers):
         color = ['red', 'green', 'blue', 'yellow', 'grey']   # 可根据类别数量延伸
         temp_data = clustered_data[clustered_data[:,2]==i]   # 筛选第i类数据
         plt.scatter(temp_data[:,0], temp_data[:,1],color=color[i])   # 绘制第i类数据
-        plt.scatter(cluster_centers[i,0], initial_centers[i,1],color=color[i], marker='x', s = 100)   # # 绘制第i类数据的簇心
+        plt.scatter(cluster_centers[i,0], cluster_centers[i,1],color=color[i], marker='x', s = 100)   # # 绘制第i类数据的簇心
         
     plt.show()
 
 
 if __name__ == "__main__":
     
-    import matplotlib.pyplot as plt
 
     data = pd.read_csv(r'Desktop/ML_Algorithms/machinelearninginaction-master/Ch10/testSet.csv', header=None)
     plt.scatter(data.iloc[:,0], data.iloc[:,1])
