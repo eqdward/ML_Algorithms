@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+
 """kMeans聚类"""
 
 import numpy as np
@@ -87,9 +88,20 @@ def Multi_kMeans(data, iteration, k):
     return min_initial_cents, min_clustered_data, min_cluster_cents, history_dist
 
 
+def plot_kMeans(clustered_data, cluster_centers):
+    """绘制kMeans分类结果"""
+
+    for i in range(len(cluster_centers)):
+        color = ['red', 'green', 'blue', 'yellow', 'grey']   # 可根据类别数量延伸
+        temp_data = clustered_data[clustered_data[:,2]==i]   # 筛选第i类数据
+        plt.scatter(temp_data[:,0], temp_data[:,1],color=color[i])   # 绘制第i类数据
+        plt.scatter(cluster_centers[i,0], initial_centers[i,1],color=color[i], marker='x', s = 100)   # # 绘制第i类数据的簇心
+        
+    plt.show()
+
+
 if __name__ == "__main__":
     
-
     import matplotlib.pyplot as plt
 
     data = pd.read_csv(r'Desktop/ML_Algorithms/machinelearninginaction-master/Ch10/testSet.csv', header=None)
@@ -99,47 +111,10 @@ if __name__ == "__main__":
     data_ = data.values
     k = 4
     
+    """单次kMeans并绘制结果"""
     initial_centers, clustered_data, cluster_centers = kMeans(data_, k)
+    plot_kMeans(clustered_data, cluster_centers)
     
-    # 按类别分组数据
-    data0 = clustered_data[clustered_data[:,2]==0]
-    data1 = clustered_data[clustered_data[:,2]==1]
-    data2 = clustered_data[clustered_data[:,2]==2]
-    data3 = clustered_data[clustered_data[:,2]==3]
-    
-    # 分颜色绘制各组数据
-    plt.scatter(data0[:,0],data0[:,1],color='red')
-    plt.scatter(data1[:,0],data1[:,1],color='green')
-    plt.scatter(data2[:,0],data2[:,1],color='blue')
-    plt.scatter(data3[:,0],data3[:,1],color='yellow')
-    
-    # 标记初始簇心
-    plt.scatter(initial_centers[0,0], initial_centers[0,1],color='red', marker='x', s = 100)
-    plt.scatter(initial_centers[1,0], initial_centers[1,1],color='green', marker='x', s = 100)
-    plt.scatter(initial_centers[2,0], initial_centers[2,1],color='blue', marker='x', s = 100)
-    plt.scatter(initial_centers[3,0], initial_centers[3,1],color='yellow', marker='x', s = 100)    
-    
-    # 标记聚类后簇心
-    plt.scatter(cluster_centers[0,0], cluster_centers[0,1],color='red', marker='+', s = 100)
-    plt.scatter(cluster_centers[1,0], cluster_centers[1,1],color='green', marker='+', s = 100)
-    plt.scatter(cluster_centers[2,0], cluster_centers[2,1],color='blue', marker='+', s = 100)
-    plt.scatter(cluster_centers[3,0], cluster_centers[3,1],color='yellow', marker='+', s = 100)
-
-    plt.show()
-    
-    
-    """多次kMeans"""    
+    """多次kMeans并绘制结果"""    
     min_initial_cents, min_clustered_data, min_cluster_cents, history_dist = Multi_kMeans(data, iteration=150, k=4)
-
-    #多次kMeans后绘图
-    data0 = min_clustered_data[min_clustered_data[:,2]==0]
-    data1 = min_clustered_data[min_clustered_data[:,2]==1]
-    data2 = min_clustered_data[min_clustered_data[:,2]==2]
-    data3 = min_clustered_data[min_clustered_data[:,2]==3]
-    
-    plt.scatter(data0[:,0],data0[:,1],color='red')
-    plt.scatter(data1[:,0],data1[:,1],color='green')
-    plt.scatter(data2[:,0],data2[:,1],color='blue')
-    plt.scatter(data3[:,0],data3[:,1],color='yellow')
-    
-    plt.show()
+    plot_kMeans(min_clustered_data, min_cluster_cents)
