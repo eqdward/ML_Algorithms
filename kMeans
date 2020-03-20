@@ -105,7 +105,7 @@ def plot_kMeans(clustered_data, cluster_centers):
 
 if __name__ == "__main__":
     
-
+    import matplotlib.pyplot as plt
     data = pd.read_csv(r'Desktop/ML_Algorithms/machinelearninginaction-master/Ch10/testSet.csv', header=None)
     plt.scatter(data.iloc[:,0], data.iloc[:,1])
     plt.show()
