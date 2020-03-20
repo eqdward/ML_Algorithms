@@ -6,6 +6,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from kMeans import kMeans   # 调用自己的kmeans，感觉调用多次kmeans似乎可以更准一些
 
 
 def get_dist(pt1, pt2):
@@ -79,8 +80,6 @@ def Bi_kMeans(data, k=2):
 
 
 if __name__ == "__main__":
-
-    from kMeans import kMeans
 
     data = pd.read_csv(r'Desktop/ML_Algorithms/machinelearninginaction-master/Ch10/testSet.csv', header=None).values
     plt.scatter(data[:,0], data[:,1])
