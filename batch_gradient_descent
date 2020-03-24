@@ -79,7 +79,6 @@ if __name__ == "__main__":
     
     from sklearn.model_selection import train_test_split
     from sklearn import datasets
-    from sklearn.LinearRegression import LinearRegression
     
     boston = datasets.load_boston()
     X = boston.data
