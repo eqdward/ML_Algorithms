@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+def get_dist(pt1, pt2):
+    """计算两个点的欧式距离"""
+    
+    assert pt1.shape == pt2.shape, "两个点的维度特征应一致"
+    return np.sqrt(np.sum((pt1 - pt2)**2))
+
+
+def get_randCenters(data, k):
+    """随机生成k个簇心"""
+    
+    n = data.shape[1]   # 簇心的维度与输入数据的维度一致
+    min_data = np.array(data.min(axis = 0)).reshape(1,n)   # 数据各维度的最小值
+    max_data = np.array(data.max(axis = 0)).reshape(1,n)   # 数据各维度的最大值
+    centers = min_data + (max_data - min_data) * np.random.rand(k, n)   # 生成簇心，介于维度的界值内
+    
+    return centers
+    
+    
+def _kMeans(data, k, centers):
+    
+    results = np.random.rand(data.shape[0], 2)
+    
+    flag = True
+    while flag:   # 当flag为真时重复循环
+        flag = False
+        
+        for i in range(data.shape[0]):   # 依次对每个数据个例分类
+            nearest_dist = np.inf   # 记录数据个例距离最近簇心的距离
+            nearest_center = -1   # # 记录个例所属簇心的索引
+            
+            for j in range(len(centers)):   # 依次比较数据个例距离每个簇心的距离，找到最近的簇心，作为个例所属的类别
+                dist = get_dist(data[i,:], centers[j,:])
+                if dist < nearest_dist:
+                    nearest_dist = dist
+                    nearest_center = j
+                    
+            if results[i,0] != nearest_center:   # 结果矩阵随机数生成的作用，避免初始值为0直接与0索引相等
+                flag = True
+                results[i,:] = nearest_center, nearest_dist
+
+    clustered_data = np.hstack((data, results))   # 结果矩阵与原数据集横向拼接
+    
+    df = pd.DataFrame(clustered_data)   # 转成dataframe，可直接分组计算各类别的簇心
+    cluster_centers = df.groupby(2).mean().iloc[:,:2]
+    
+    
+    return clustered_data, np.array(cluster_centers)   # 返回初始簇心，聚类后结果，聚类后簇心
+
+
+def kMeans(data, k):
+    """利用kMeans的自收敛特性多次迭代实现聚类"""
+
+    for i in range(20):  
+        
+        if i == 0:   # 第一次聚类随机分配簇心
+            centers = get_randCenters(data, k)
+            clustered_data, cluster_centers = _kMeans(data, k, centers)    
+        
+        else:   # 第二次及后续聚类使用上一次聚类后的类均值作为簇心
+            centers = cluster_centers
+            clustered_data, cluster_centers = _kMeans(data, k, centers)
+        
+        
+        """计算每次簇心改变的距离，当改变距离很小时提前结束循环"""
+        dist_change = 0
+        for i in range(k):
+            d = get_dist(centers[i], cluster_centers[i])
+            dist_change += d
+        print(i, ":", dist_change)
+        
+        if dist_change < 0.3:
+            break
+
+        # 可视化收敛过程
+        #if i % 2  == 0:   
+        #    plot_kMeans(clustered_data, cluster_centers)
+        
+    return clustered_data, cluster_centers
+    
+
+def plot_kMeans(clustered_data, cluster_centers):
+    """绘制kMeans分类结果"""
+
+    for i in range(len(cluster_centers)):
+        color = ['red', 'green', 'blue', 'yellow', 'grey']   # 可根据类别数量延伸
+        temp_data = clustered_data[clustered_data[:,2]==i]   # 筛选第i类数据
+        plt.scatter(temp_data[:,0], temp_data[:,1],color=color[i])   # 绘制第i类数据
+        plt.scatter(cluster_centers[i,0], cluster_centers[i,1],color=color[i], marker='x', s = 100)   # # 绘制第i类数据的簇心
+        
+    plt.show()
+
+if __name__ == "__main__":
+    
+    import pandas as pd
+    data = pd.read_csv(r'testSet.csv', header=None)
+    data = data.values
+    
+    plt.scatter(data[:,0], data[:,1])
+    plt.show()
+    
+    k =4
+    
+    np.random.seed(2)
+    clustered_data, cluster_centers, c=kMeans(data, k)
+    plot_kMeans(clustered_data, cluster_centers)
+
+    
