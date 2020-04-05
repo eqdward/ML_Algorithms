@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+正则化消除过拟合示例
+"""
+
+
+"""过拟合示例"""
+    """S1.准备数据"""
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(888)
+x = np.random.uniform(-3, 3, size=100)
+X = x.reshape(-1, 1)
+y = 0.5 + x**2 + x + 2 + np.random.normal(0, 1, size=100)
+plt.scatter(x, y)
+plt.show()
+
+
+    """S2.多项式回归（30）"""
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
+
+lin_reg = LinearRegression()
+
+def PolynomialRegression(degree):
+    return Pipeline([
+            ('Poly', PolynomialFeatures(degree)),
+            ('std_scaler', StandardScaler()),
+            ('lin_reg', lin_reg)
+            ])
+    
+X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666)
+
+poly30_reg = PolynomialRegression(degree = 30)
+poly30_reg.fit(X_train, y_train)
+y30_predict = poly30_reg.predict(X_test)
+mean_squared_error(y_test, y30_predict)   # 9.040049628217018
+
+    """S3.绘制拟合结果"""
+X_plot = np.linspace(-3,3,100).reshape(100,1)
+y_plot = poly30_reg.predict(X_plot)
+plt.scatter(X,y)
+plt.plot(X_plot[:,0],y_plot,color='r')
+plt.axis([-3,3,0,10])
+plt.show()
+
+
+"""L1正则化：LASSO回归"""
+from sklearn.linear_model import Lasso
+
+def LassoRegression(degree, alpha):    # 封装lasso回归的pipeline
+    return Pipeline([
+            ('Poly', PolynomialFeatures(degree=degree)),
+            ('std_scaler', StandardScaler()),
+            ('lasso_reg', Lasso(alpha=alpha))            
+            ])
+
+def plot_model(plot_reg):    # 定义模型结果的绘制函数
+    X_plot = np.linspace(-3,3,100).reshape(100,1)
+    y_plot = plot_reg.predict(X_plot)
+    plt.scatter(X,y)
+    plt.plot(X_plot[:,0],y_plot,color='r')
+    plt.axis([-3,3,0,10])
+    plt.show()
+    
+
+lasso_reg1 = LassoRegression(30, 0.0001)
+lasso_reg1.fit(X_train, y_train)
+y1_predict = lasso_reg1.predict(X_test)
+mean_squared_error(y_test, y1_predict)   # 1.3394026201341973
+
+plot_model(lasso_reg1)    # 绘制模型拟合结果，相对顺滑的曲线
+
+"""LASSO回归调参：提高超参数，增大惩罚力度"""
+    """alpha=0.1"""
+lasso_reg2 = LassoRegression(degree=30, alpha=0.1)
+lasso_reg2.fit(X_train, y_train)
+y2_predict = lasso_reg2.predict(X_test)
+mean_squared_error(y_test, y2_predict)   # 1.2224470338258882，MSE减小
+    plot_model(lasso_reg2)    # 绘制模型拟合结果，更加顺滑的曲线，接近二次曲线
+
+    """alpha=10"""
+lasso_reg3 = LassoRegression(30,10)
+lasso_reg3.fit(X_train,y_train)
+y3_predict=lasso_reg3.predict(X_test)
+mean_squared_error(y_test,y3_predict)   # 12.626654141939536，MSE反弹增大
+plot_model(lasso_reg3)   # 绘制模型拟合结果，成为一条直线
+
+
+
+"""L2正则化：RIDGE回归"""
+from sklearn.linear_model import Ridge   # 封装lasso回归的pipeline
+
+def RidgeRegression(degree, alpha):
+    return Pipeline([
+            ('poly', PolynomialFeatures(degree=degree)),
+            ('std_scaler', StandardScaler()),
+            ('ridge_reg', Ridge(alpha=alpha))
+            ])
+
+ridge1_reg = RidgeRegression(degree=30, alpha=0.0001)
+ridge1_reg.fit(X_train, y_train)
+y1_predict = ridge1_reg.predict(X_test)
+mean_squared_error(y_test, y1_predict)   # 1.2975253949535803
+
+plot_model(ridge1_reg)   # 绘制模型拟合结果，相对顺滑的曲线
+
+
+"""RIDGE回归调参：提高超参数，增大惩罚力度"""
+ridge2_reg = RidgeRegression(degree=30, alpha=1)
+ridge2_reg.fit(X_train, y_train)
+y2_predict = ridge2_reg.predict(X_test)
+mean_squared_error(y_test, y2_predict)   # 1.1533633669392716
+
+plot_model(ridge2_reg)   # 绘制模型拟合结果，更加顺滑的曲线，接近二次曲线
+
