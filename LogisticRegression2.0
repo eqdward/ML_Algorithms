@@ -1,0 +1,307 @@
+# -*- coding: utf-8 -*-
+"""
+Spyder Editor
+
+This is a temporary script file.
+"""
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jul 23 08:44:31 2018
+
+@author: yy
+"""
+
+"""正态分布与logit分布比较"""
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy.stats as st
+
+
+
+# 定义正态分布的pdf函数
+#def normal_distribution(x, 0, 1):
+#    y = np.exp(-(x-miu)**2/(2*sigma**2))/(np.sqrt(2*  np.pi)*sigma)
+#    return y
+
+x = np.linspace(-5,5,100)
+norm_distribution = st.norm(0, 1)   # 定义均值0、标准差为1的正态分布
+y_pdf = norm_distribution.pdf(x)   # 计算x的正态分布概率密度值
+y_cdf = norm_distribution.cdf(x)   # 计算x的正态分布概率累积值
+
+plt.plot(x, y_pdf, 'r-')   # 绘制x的正态分布概率密度函数
+plt.plot(x, y_cdf, 'b-')   # 绘制x的正态分布概率累积函数
+plt.legend(('norm_dist_pdf', 'norm_dist_cdf'))
+plt.show() 
+
+
+# 定义logit分布的cdf函数，即sigmoid函数
+def logit_cdf(x):
+    return 1. / (1. + np.exp(-x))
+# 定义logit分布的pdf函数
+def logit_pdf(x):
+    return np.exp(-x) / (1. + np.exp(-x))**2
+
+y_logit_pdf = logit_pdf(x)   # 计算x的logit分布概率密度值
+y_logit_cdf = logit_cdf(x)   # 计算x的logit分布概率累积值
+
+plt.plot(x, y_logit_pdf, 'r-')   # 绘制x的logit分布概率密度函数
+plt.plot(x, y_logit_cdf, 'b-')   # 绘制x的logit分布概率累积函数
+plt.legend(('logit_pdf', 'logit_cdf'))
+plt.show() 
+
+
+"""logit回归实现
+   实现步骤：
+    1. 定义sigmoid方法，使用sigmoid方法生成逻辑回归模型
+    2. 定义损失函数，并使用梯度下降法得到参数
+    3. 将参数代入到逻辑回归模型中，得到概率
+    4. 将概率转化为分类
+"""
+
+import numpy as np
+from sklearn.metrics import accuracy_score
+
+class LogisticRegression:
+
+    def __init__(self):
+        """初始化Logistic Regression模型"""
+        self.coef_ = None
+        self.intercept_ = None
+        self._theta = None
+        
+    """1. 定义sigmoid方法，使用sigmoid方法生成逻辑回归模型"""
+    def _sigmoid(self, t):
+
+        return 1. / (1. + np.exp(-t))
+    
+    """2. 定义损失函数，并使用梯度下降法得到参数"""
+    def fit(self, X_train, y_train, eta=0.01, n_iters=1e4):
+        
+        assert X_train.shape[0] == y_train.shape[0], "the size of X_train must be equal to the size of y_train"
+        
+        def J(theta, X_b, y):   # 损失函数
+            y_hat = self._sigmoid(X_b.dot(theta))
+            try:
+                return -np.sum(y*np.log(y_hat) + (1-y)*np.log(1-y_hat)) / len(y)
+            except:
+                return float(np.inf)
+        
+        def dJ(theta, X_b, y):   # 损失函数的导数（梯度）
+            return X_b.T.dot(self._sigmoid(X_b.dot(theta))-y) / len(y)
+        
+        def gradient_descent(X_b, y, initial_theta, eta, n_iters=1e4, epsilon=1e-8):
+            """用梯度下降法求模型参数"""
+            theta = initial_theta
+            cur_iter = 0
+            while cur_iter < n_iters:
+                gradient = dJ(theta, X_b, y)
+                last_theta = theta
+                theta = theta - eta * gradient
+                if (abs(J(theta, X_b, y) - J(last_theta, X_b, y)) < epsilon):
+                    break
+                cur_iter += 1
+            return theta
+        
+        X_b = np.hstack([np.ones((len(X_train), 1)), X_train])
+        initial_theta = np.zeros(X_b.shape[1])
+        
+        self._theta = gradient_descent(X_b, y_train, initial_theta, eta, n_iters)
+        self.intercept_ = self._theta[0]
+        self.coef_ = self._theta[1:]
+        return self
+    
+    """3. 将参数代入到逻辑回归模型中，得到概率"""
+    def predict_proba(self, X_predict):
+        """模型预测"""
+        assert self.intercept_ is not None and self.coef_ is not None, "must fit before predict!"
+        assert X_predict.shape[1] == len(self.coef_), "the feature number of X_predict must be equal to X_train"
+        
+        X_b = np.hstack([np.ones((len(X_predict), 1)), X_predict])
+        return self._sigmoid(X_b.dot(self._theta))
+    
+    """4. 将概率转化为分类"""
+    def predict(self, X_predict):
+        assert self.intercept_ is not None and self.coef_ is not None, "must fit before predict!"
+        assert X_predict.shape[1] == len(self.coef_), "the feature number of X_predict must be equal to X_train"
+
+        proba = self.predict_proba(X_predict)        
+        return np.array(proba>=0.5, dtype='int')
+    
+    def score(self, X_test, y_test):
+        y_predict = self.predict(X_test)
+        return accuracy_score(y_test, y_predict)
+    
+    def __repr__(self):
+        return "LogisticRegression()"
+
+
+if __name__ == "__main__":
+    
+"""逻辑回归实例"""
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from sklearn import datasets
+    from sklearn.model_selection import train_test_split
+    
+    iris = datasets.load_iris()
+    X = iris.data
+    y = iris.target
+    X = X[y<2,:2]
+    y = y[y<2]
+    plt.scatter(X[y==0,0], X[y==0,1], color='red')
+    plt.scatter(X[y==1,0], X[y==1,1], color='blue')
+    plt.legend(('Label 0', 'Label 1'))
+    plt.show()
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666)
+    
+    log_reg = LogisticRegression()
+    log_reg.fit(X_train, y_train)
+    log_reg.coef_
+    log_reg.intercept_
+    
+    #log_reg.score(X_test, y_test)
+    #log_reg.predict_proba(X_test)
+    #log_reg.predict(X_test)
+    
+"""线型决策边界"""
+    def decision_boundary(x1):
+        """计算二维特征分类的决策边界"""
+        x2 = (-log_reg.intercept_ - log_reg.coef_[0] * x1) / log_reg.coef_[1]
+        return x2
+    
+    x1 = np.linspace(4,8,500)
+    x2 = decision_boundary(x1)
+    plt.plot(x1, x2)
+    plt.scatter(X[y==0,0], X[y==0,1], color='red')
+    plt.scatter(X[y==1,0], X[y==1,1], color='blue')
+    plt.legend(('dcsn_bdry', 'Label 0', 'Label 1'))
+    plt.show()
+    
+    
+"""非线型决策边界"""
+    np.random.seed(666)
+    X = np.random.normal(0,1,(200,2))   # 构建200个样本数据，服从标准差为0，标准为1的分布，特征数量为2      
+    y = np.array((X[:,0]**2+X[:,1]**2)<1.5, dtype='int')   # 半径在1.5以内的样本标签为1，其他为0
+    plt.scatter(X[y==0,0], X[y==0,1], color='red')
+    plt.scatter(X[y==1,0], X[y==1,1], color='blue')
+    plt.legend(('Label 0', 'Label 1'))
+    plt.show()
+    
+    """1)线性逻辑回归"""
+    log_reg2 = LogisticRegression()
+    log_reg2.fit(X,y)
+    log_reg2.score(X,y)   # 输出0.585
+      
+    def plot_decision_boundary(model, axis):   # 决策边界绘制函数
+        x0, x1 = np.meshgrid(
+            np.linspace(axis[0], axis[1], int((axis[1]-axis[0])*100)).reshape(-1, 1),
+            np.linspace(axis[2], axis[3], int((axis[3]-axis[2])*100)).reshape(-1, 1),
+        )
+        
+        X_new = np.c_[x0.ravel(), x1.ravel()]
+        y_predict = model.predict(X_new)
+        zz = y_predict.reshape(x0.shape)
+        from matplotlib.colors import ListedColormap
+        custom_cmap = ListedColormap(['#EF9A9A','#FFF59D','#90CAF9']) 
+        plt.contourf(x0, x1, zz, linewidth=5, cmap=custom_cmap)
+    
+    plot_decision_boundary(log_reg2, axis=[-4, 4, -4, 4])
+    plt.scatter(X[y==0,0], X[y==0,1], color='red')
+    plt.scatter(X[y==1,0], X[y==1,1], color='blue')
+    plt.show()     # 决策边界为直线，将整个数据区域对半划分，与score的结果0.585基本一致
+
+        
+    """2)多项式逻辑回归"""
+    from sklearn.preprocessing import PolynomialFeatures
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+    
+    def PolynomialLogisticRegression(degree):
+        return Pipeline([
+                ("poly", PolynomialFeatures(degree)),
+                ("std_scaler", StandardScaler()),
+                ("log_reg", LogisticRegression())          
+        ])
+    
+    poly_log_reg = PolynomialLogisticRegression(degree=2)
+    poly_log_reg.fit(X,y)
+    poly_log_reg.score(X, y)   # 输出0.97
+    
+    plot_decision_boundary(poly_log_reg, axis=[-4, 4, -4, 4])
+    plt.scatter(X[y==0,0], X[y==0,1], color='red')
+    plt.scatter(X[y==1,0], X[y==1,1], color='blue')
+    plt.show()
+    
+
+"""多项式逻辑回归+正则化"""
+    """1.准备数据"""
+    np.random.seed(666)
+    X = np.random.normal(0, 1, size=(200, 2))
+    y = np.array((X[:,0]**2+X[:,1])<1.5, dtype='int')
+    
+    for _ in range(20):   # 随机将20个点的标签设为1，作为噪音
+        y[np.random.randint(200)]=1
+    
+    plt.scatter(X[y==0,0], X[y==0,1], color='red')
+    plt.scatter(X[y==1,0], X[y==1,1], color='blue')
+    plt.show()
+    
+    """2.逻辑回归（线性）"""
+    from sklearn.linear_model import LogisticRegression
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=666)
+
+    log_reg = LogisticRegression()
+    log_reg.fit(X_train, y_train)
+    
+    log_reg.score(X_train, y_train)    # 输出0.7933333333333333
+    log_reg.score(X_test, y_test)    # 输出0.86
+
+    """3.可视化逻辑回归（线性）决策边界"""
+    plot_decision_boundary(log_reg, axis=[-4, 4, -4, 4])
+    plt.scatter(X[y==0,0], X[y==0,1], color='red')
+    plt.scatter(X[y==1,0], X[y==1,1], color='blue')
+    plt.show()
+    
+    """4.逻辑回归（多项式）并可视化决策边界"""
+    poly_log_reg2 = PolynomialLogisticRegression(degree=2)
+    poly_log_reg2.fit(X_train, y_train)
+    
+    poly_log_reg2.score(X_train, y_train)    # 输出0.9133333333333333
+    poly_log_reg2.score(X_test, y_test)    # 输出0.94
+
+    plot_decision_boundary(poly_log_reg2, axis=[-4, 4, -4, 4])
+    plt.scatter(X[y==0,0], X[y==0,1], color='red')
+    plt.scatter(X[y==1,0], X[y==1,1], color='blue')
+    plt.show()
+
+    """5.逻辑回归（高次多项式）"""
+    poly_log_reg3 = PolynomialLogisticRegression(degree=20)
+    poly_log_reg3.fit(X_train, y_train)
+    
+    poly_log_reg3.score(X_train, y_train)    # 输出0.94
+    poly_log_reg3.score(X_test, y_test)    # 输出0.92
+
+    plot_decision_boundary(poly_log_reg3, axis=[-4, 4, -4, 4])
+    plt.scatter(X[y==0,0], X[y==0,1], color='red')
+    plt.scatter(X[y==1,0], X[y==1,1], color='blue')
+    plt.show()
+    
+    """6.L1正则化"""
+    def PolynomialLogisticRegression2(degree, C, penalty):
+        return Pipeline([
+                ("poly", PolynomialFeatures(degree=degree)),
+                ("std_scaler", StandardScaler()),
+                ("log_reg", LogisticRegression(C=C, penalty=penalty))
+        ])
+    
+    poly_log_reg4 = PolynomialLogisticRegression2(degree=20, C=0.1, penalty='l1')
+    poly_log_reg4.fit(X_train, y_train)
+    poly_log_reg4.score(X_train, y_train)   # 输出0.8266666666666667
+    poly_log_reg4.score(X_test, y_test)   # 输出0.9
+    
+    plot_decision_boundary(poly_log_reg4, axis=[-4, 4, -4, 4])
+    plt.scatter(X[y==0,0], X[y==0,1], color='red')
+    plt.scatter(X[y==1,0], X[y==1,1], color='blue')
+    plt.show()
+    
