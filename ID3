@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import operator
+import numpy as np
+
+dataSet=np.array([[0, 0, 0, 0, 0],
+                  [0, 0, 0, 1, 0],
+                  [0, 1, 0, 1, 1],
+                  [0, 1, 1, 0, 1],
+                  [0, 0, 0, 0, 0],
+                  [1, 0, 0, 0, 0],
+                  [1, 0, 0, 1, 0],
+                  [1, 1, 1, 1, 1],
+                  [1, 0, 1, 2, 1],
+                  [1, 0, 1, 2, 1],
+                  [2, 0, 1, 2, 1],
+                  [2, 0, 1, 1, 1],
+                  [2, 1, 0, 1, 1],
+                  [2, 1, 0, 2, 1],
+                  [2, 0, 0, 0, 0]])
+featName = ['年龄','有工作','有自己的房子','信贷情况']
+
+X = dataSet[:,:-1]   # 特征矩阵
+y = dataSet[:,-1]   #  类向量
+
+def calEntropy(dataSet):
+    """计算经验熵"""
+
+    labelCounts={}   # 记录类及取值数量
+    
+    for feat in dataSet:   # 取dataSet中的每一行
+        currentLabel=feat[-1]   # 取每一行的最后一个元素，即类
+        if currentLabel not in labelCounts.keys():   # 如果类没有在labelCounts中进行统计，则加入labelCounts中
+            labelCounts[currentLabel] = 0
+        labelCounts[currentLabel] += 1
+        
+    entropy = 0.0
+    for key in labelCounts:
+        prob = float(labelCounts[key])/len(dataSet)
+
+        entropy -= prob*np.log2(prob)
+    return entropy
+
+
+def currentConditionSet(dataSet, cutFeatIndex, category):
+    """为计算条件熵，需先获取条件下的数据子集"""
+    tempFeatSets = []
+    for featVec in dataSet:
+        if featVec[cutFeatIndex] == category:
+            tempFeatSet = np.append(featVec[:cutFeatIndex],featVec[cutFeatIndex+1:])
+            tempFeatSets.append(tempFeatSet)
+    return tempFeatSets
+
+
+def calConditionalEnt(dataSet, cutFeatIndex):
+    """计算当前划分条件下的条件熵"""
+    conditionalEnt = 0
+    categories = set(dataSet[:,cutFeatIndex])   # 用集合来获取分割特征的取值
+    
+    for category in categories:   # 对特征的每一种取值计算条件熵并求和
+        subConditionalSet = currentConditionSet(dataSet, cutFeatIndex, category)
+        prob = len(subConditionalSet) / float(len(dataSet))   # 子集发生的概率
+        conditionalEnt += prob * calEntropy(subConditionalSet)
+ 
+    return conditionalEnt
+
+
+def calInfoGain(baseEntropy, dataSet, cutFeatIndex):
+    """计算信息增益"""
+    conditionalEnt = calConditionalEnt(dataSet,cutFeatIndex)   # 条件熵
+    infoGain = baseEntropy - conditionalEnt   # 信息增益
+    
+    print("第%d个特征的增益为%.3f" % (cutFeatIndex, infoGain))
+    return infoGain
+
+
+def optimalPartition(dataSet):
+    """使用信息增益寻找最佳划分"""
+    bestInfoGain = -1
+    bestFeat = -1
+    baseEntropy = calEntropy(dataSet)
+    
+    for cutFeatIndex in range(dataSet.shape[1]-1):   # 遍历每一个特征
+        infoGain = calInfoGain(baseEntropy, dataSet, cutFeatIndex)
+        
+        if infoGain > bestInfoGain:
+            bestInfoGain = infoGain
+            bestFeat = cutFeatIndex
+    
+    print("最佳的划分为第%d个特征，是“%s”，信息增益为%.3f" % (bestFeat,featName[bestFeat],bestInfoGain))
+    print("-"*25)
+    return bestFeat
+
+
+def majorityCnt(yList):
+    """统计标签向量中出现最多的标签值"""
+    yCount = {}
+    for vote in yList:
+        if vote not in yCount.keys():
+            yCount[vote] = 0
+        yCount[vote] += 1
+        
+        sortedYCount = sorted(yCount.items(), key = operator.itemgetter(1), reverse = True)
+    
+    return sortedYCount[0][0]
+
+
+def createDT(dataSet, featList, bestFeatLists):
+    """创建ID3决策树"""
+    yList = [i[-1] for i in dataSet]   # 从数据集中取出标签列
+    
+    if yList.count(yList[0])==len(yList):   # 如果标签列中只有一个值，返回该值作为叶节点标签
+        return yList[0]
+    
+    if dataSet.shape[1]==1:    # 如果数据集已对所有特征进行划分，只剩类标签，但其中值仍然不是唯一的，投票法返回值作为叶节点标签
+        return majorityCnt(yList)
+    
+    bestFeat = optimalPartition(dataSet)   # 最佳划分特征的index
+    bestFeatLabel = featList[bestFeat]   # 最佳划分特征的属性名，作为根节点的标签
+
+    bestFeatLists.append(bestFeatLabel)   # 存储最优特征的标签
+    
+    myTree={bestFeatLabel:{}}   # 生成决策树，以字典结构存储
+    
+    del(featList[bestFeat])   # 删除已经使用的特征标签（del删除变量，解除引用）
+    print('featList: ',featList)
+    
+    
+    featValues=[i[bestFeat] for i in dataSet]   # 取得最优特征那一列所对应的值
+    categories=set(featValues)   # 去掉重复值，得到最优特征下的子类
+    
+    for category in categories:
+        subDataSet = np.array(currentConditionSet(dataSet, bestFeat, category))
+        myTree[bestFeatLabel][category]=createDT(subDataSet, featList, bestFeatLists)
+
+    return myTree
+    
+
+if __name__ == "__main__":
+    bestFeatLists = []
+    myTree=createDT(dataSet,featName,bestFeatLists)
+    print(myTree)
+
+
+
+
+    
+
+    
+    
+    
+    
+    
+
