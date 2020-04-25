@@ -1,0 +1,66 @@
+import numpy as np
+
+class PCA:
+    
+    def __init__(self, k):
+        """初始化"""
+        self.k_components = k   # k为要取得的主成分个数
+        self.components_ = None   # 主成分矩阵，存储k个主成分
+        
+    
+    def fit(self, X, eta=0.001, k_iters=1e4):
+        """模型训练"""
+        
+        def demean(X):
+            """均值归零"""
+            return X - np.mean(X, axis=0)
+        
+        def var(w, X):
+            """方差函数"""
+            return np.sum(X.dot(w)**2) / len(X)
+                       
+        def d_var(w, X):
+            """方差函数的梯度"""
+            return X.T.dow(X.dot(w)) * 2 / len(X)
+        
+        def direction(w):
+            """将向量w化成单位向量"""
+        
+        def first_component(X, initial_w, eta, k_iters, epsilon=1e8):
+            """寻找第一主成分"""
+            w = direction(initial_w)
+            cur_iter = 0
+            
+            while cur_iter < k_iters:
+                gradient = d_var(w, X)
+                last_w = w
+                
+                w = w + eta * gradient
+                w = direction(w)
+                
+                if(abs(var(w, X) - var(last_w, X)) < epsilon):
+                    break
+                
+                cur_iter += 1
+            
+            return w
+    
+        X_pca = demean(X)
+        self.components_ = np.empty(shape=(self.k_components, X.shape[1]))
+        
+        for i in range(self.k_components):
+            initial_w = np.random.random(X_pca.shape[1])
+            w = first_component(X_pca, initial_w, eta, k_iters)
+            
+            self.components_[i:] = w
+            
+            X_pca = X_pca - X_pca.dot(w).reshape(-1,1)*w
+        
+        return self
+    
+    def transform(self, X):
+        assert X.shape[1] == self.components_.shape[1], """数据集和特征维度应相同"""
+        return X.dot(self.components_.T)
+    
+    def inverse_transform(self, X):
+        return X.dot(self.components_)
